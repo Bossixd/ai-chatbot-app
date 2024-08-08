@@ -9,19 +9,19 @@ import {
     MenuItem,
     TextField,
 } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DoDisturb, Upload } from "@mui/icons-material";
 
-import {test} from "@/pg"
+import { test } from "@/pg";
 
 interface Chat {
     title: string;
     uuid: string;
 }
 
-interface Conversation {
-    user: string;
-    text: string;
+interface Dialogue {
+    is_user: boolean;
+    message: string;
 }
 
 export default function Home() {
@@ -32,48 +32,48 @@ export default function Home() {
         { title: "Drunk Driving", uuid: "FDLKDF" },
         { title: "Creating a Moltov Grenade with your toes", uuid: "ABCDEFG" },
     ]);
-    const [conversations, setConversations] = useState<Conversation[]>([
-        {
-            user: "user",
-            text: "Lorem insum asdf sd fs dfasdfasd asdfasdf sdfsdf sdfsdf sdfsdf sdfsdf. sdfasdf, sdfsdf sdfsdfsd,f sdfjsd fsd fsdf.sdfs dfsdfs dfsdfsd fsdfs dfsdfs dfsdf adfasd fsdfas dfasdfas sdfadsf.",
-        },
-        {
-            user: "assistant",
-            text: "Lorem insum asdf sd fs dfasdfasd asdfasdf sdfsdf sdfsdf sdfsdf sdfsdf. sdfasdf, sdfsdf sdfsdfsd,f sdfjsd fsd fsdf.sdfs dfsdfs dfsdfsd fsdfs dfsdfs dfsdf adfasd fsdfas dfasdfas sdfadsf.",
-        },
-        {
-            user: "user",
-            text: "Lorem insum asdf sd fs dfasdfasd asdfasdf sdfsdf sdfsdf sdfsdf sdfsdf. sdfasdf, sdfsdf sdfsdfsd,f sdfjsd fsd fsdf.sdfs dfsdfs dfsdfsd fsdfs dfsdfs dfsdf adfasd fsdfas dfasdfas sdfadsf.",
-        },
-        {
-            user: "assistant",
-            text: "Lorem insum asdf sd fs dfasdfasd asdfasdf sdfsdf sdfsdf sdfsdf sdfsdf. sdfasdf, sdfsdf sdfsdfsd,f sdfjsd fsd fsdf.sdfs dfsdfs dfsdfsd fsdfs dfsdfs dfsdf adfasd fsdfas dfasdfas sdfadsf.",
-        },
-        {
-            user: "user",
-            text: "Lorem insum asdf sd fs dfasdfasd asdfasdf sdfsdf sdfsdf sdfsdf sdfsdf. sdfasdf, sdfsdf sdfsdfsd,f sdfjsd fsd fsdf.sdfs dfsdfs dfsdfsd fsdfs dfsdfs dfsdf adfasd fsdfas dfasdfas sdfadsf.",
-        },
-        {
-            user: "assistant",
-            text: "Lorem insum asdf sd fs dfasdfasd asdfasdf sdfsdf sdfsdf sdfsdf sdfsdf. sdfasdf, sdfsdf sdfsdfsd,f sdfjsd fsd fsdf.sdfs dfsdfs dfsdfsd fsdfs dfsdfs dfsdf adfasd fsdfas dfasdfas sdfadsf.",
-        },
-        {
-            user: "user",
-            text: "Lorem insum asdf sd fs dfasdfasd asdfasdf sdfsdf sdfsdf sdfsdf sdfsdf. sdfasdf, sdfsdf sdfsdfsd,f sdfjsd fsd fsdf.sdfs dfsdfs dfsdfsd fsdfs dfsdfs dfsdf adfasd fsdfas dfasdfas sdfadsf.",
-        },
-        // {
-        //     user: "assistant",
-        //     text: "Lorem insum asdf sd fs dfasdfasd asdfasdf sdfsdf sdfsdf sdfsdf sdfsdf. sdfasdf, sdfsdf sdfsdfsd,f sdfjsd fsd fsdf.sdfs dfsdfs dfsdfsd fsdfs dfsdfs dfsdf adfasd fsdfas dfasdfas sdfadsf.",
-        // },
-        // {
-        //     user: "user",
-        //     text: "Lorem insum asdf sd fs dfasdfasd asdfasdf sdfsdf sdfsdf sdfsdf sdfsdf. sdfasdf, sdfsdf sdfsdfsd,f sdfjsd fsd fsdf.sdfs dfsdfs dfsdfsd fsdfs dfsdfs dfsdf adfasd fsdfas dfasdfas sdfadsf.",
-        // },
-        // {
-        //     user: "assistant",
-        //     text: "Lorem insum asdf sd fs dfasdfasd asdfasdf sdfsdf sdfsdf sdfsdf sdfsdf. sdfasdf, sdfsdf sdfsdfsd,f sdfjsd fsd fsdf.sdfs dfsdfs dfsdfsd fsdfs dfsdfs dfsdf adfasd fsdfas dfasdfas sdfadsf.",
-        // },
-    ]);
+    const [conversation, setConversation] = useState<Dialogue[]>([]);
+
+    // Get Dialogue
+    const getDialogue = async () => {
+        await fetch("/api/chat/getDialogue", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({}),
+        })
+            .then((res) => res.json())
+            .then((res) => {
+                console.log("test");
+                console.log(res.messages);
+                setConversation(res.messages)
+                console.log(conversation)
+            });
+    };
+
+    useEffect(() => {
+        getDialogue();
+    }, [])
+
+    // Invoke LLM
+    const invoke = async () => {
+        conversation.push({is_user: true, message: message})
+        console.log(conversation)
+        await fetch("/api/chat/invoke", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                conversation: conversation
+            }),
+        })
+            .then((res) => res.json())
+            .then((res) => {
+                setConversation(res.conversation)
+            });
+    };
 
     // Chat Menu Handlers
     const [auth, setAuth] = useState<boolean>(true);
@@ -111,7 +111,7 @@ export default function Home() {
                                     {chat.title}
                                 </Typography>
                                 <Button onClick={handleMenu}>
-                                    <DoDisturb fontSize="20"></DoDisturb>
+                                    <DoDisturb></DoDisturb>
                                 </Button>
                                 <Menu
                                     id="menu-appbar"
@@ -157,12 +157,12 @@ export default function Home() {
                     overflow={"auto"}
                     mb={1}
                 >
-                    {conversations.map((conversation) => (
+                    {conversation.map((dialogue) => (
                         <Box
                             width={"100%"}
                             display={"flex"}
                             justifyContent={
-                                conversation.user == "user"
+                                dialogue.is_user
                                     ? "flex-end"
                                     : "flex-begin"
                             }
@@ -170,14 +170,14 @@ export default function Home() {
                             <Box
                                 maxWidth={"80%"}
                                 bgcolor={
-                                    conversation.user == "user"
+                                    dialogue.is_user
                                         ? "lightgrey"
                                         : "grey"
                                 }
                                 borderRadius={5}
                                 display={"flex"}
                                 justifyContent={
-                                    conversation.user == "user"
+                                    dialogue.is_user
                                         ? "flex-end"
                                         : "flex-begin"
                                 }
@@ -185,12 +185,12 @@ export default function Home() {
                                 <Typography
                                     margin={1}
                                     textAlign={
-                                        conversation.user == "user"
+                                        dialogue.is_user
                                             ? "right"
                                             : "left"
                                     }
                                 >
-                                    {conversation.text}
+                                    {dialogue.message}
                                 </Typography>
                             </Box>
                         </Box>
@@ -216,9 +216,12 @@ export default function Home() {
                                 setMessage(e.target.value);
                             }}
                         ></TextField>
-                        <Button onClick={() => {
-                            setMessage("")
-                        }}>
+                        <Button
+                            onClick={() => {
+                                setMessage("");
+                                invoke();
+                            }}
+                        >
                             <Upload></Upload>
                         </Button>
                     </Box>

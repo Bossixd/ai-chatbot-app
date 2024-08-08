@@ -73,6 +73,7 @@ export default function Home() {
                     icon={<Lock />}
                     value={password}
                     callback={setPassword}
+                    password
                 />
                 <Button onClick={() => login()}>Login</Button>
                 <Box

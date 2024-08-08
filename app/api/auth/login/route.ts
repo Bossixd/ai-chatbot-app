@@ -22,14 +22,14 @@ const connectionString = process.env.DB_URL;
 export async function POST(request: Request) {
     const { email, password } = await request.json();
 
-    const client = new Client({
+    const clientPosgres = new Client({
         connectionString,
     });
 
-    await client.connect();
+    await clientPosgres.connect();
 
     const checkEmailQuery = "select * from users where email = $1";
-    const checkEmailRaw = await client.query(checkEmailQuery, [email]);
+    const checkEmailRaw = await clientPosgres.query(checkEmailQuery, [email]);
     const checkEmail: User[] = checkEmailRaw.rows;
 
     if (checkEmail.length != 1)
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 
     await login(email, password);
 
-    await client.end();
+    await clientPosgres.end();
     return NextResponse.json({
         success: true,
         reason: "",

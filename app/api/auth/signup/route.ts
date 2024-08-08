@@ -22,19 +22,19 @@ export async function POST(request: Request) {
 
     const encryptedPassword = await encryptPassword(password);
 
-    const client = new Client({
+    const clientPosgres = new Client({
         connectionString,
     });
 
-    await client.connect();
+    await clientPosgres.connect();
 
     const query =
         "insert into users (firstname, lastname, email, password) values ($1, $2, $3, $4)";
-    await client.query(query, [firstname, lastname, email, encryptedPassword]);
+    await clientPosgres.query(query, [firstname, lastname, email, encryptedPassword]);
 
     console.log(password, encryptedPassword)
 
-    await client.end();
+    await clientPosgres.end();
 
     return NextResponse.json({
         success: true,

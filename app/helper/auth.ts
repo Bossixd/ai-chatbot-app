@@ -1,6 +1,5 @@
 "use server"
 
-import { keyframes } from "@emotion/react";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -17,7 +16,6 @@ export async function encrypt(payload: any) {
 }
 
 export async function decrypt(input: string) {
-    console.log(input);
     const { payload } = await jwtVerify(input, key, { algorithms: ["HS256"] });
     return payload;
 }
