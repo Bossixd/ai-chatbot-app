@@ -17,8 +17,8 @@ const { Client } = pg;
 const connectionString = process.env.DB_URL;
 
 export async function POST(request: NextRequest) {
-    // const { email, password } = await request.json();
-    const chatId = "03b0d96d-1796-4742-9db5-b69551f7862d";
+    const { chatId } = await request.json();
+    console.log("Chat Id: ", chatId);
 
     const clientPosgres = new Client({
         connectionString,

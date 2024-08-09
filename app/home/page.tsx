@@ -8,6 +8,7 @@ import {
     Menu,
     MenuItem,
     TextField,
+    Link,
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import { DoDisturb, Upload } from "@mui/icons-material";
@@ -16,7 +17,7 @@ import { test } from "@/pg";
 
 interface Chat {
     title: string;
-    uuid: string;
+    chat_id: string;
 }
 
 interface Dialogue {
@@ -27,16 +28,31 @@ interface Dialogue {
 export default function Home() {
     // Variable Handlers
     const [message, setMessage] = useState<string>("");
-    const [chats, setChats] = useState<Chat[]>([
-        { title: "How to eat watermellom", uuid: "ABCDEFG" },
-        { title: "Drunk Driving", uuid: "FDLKDF" },
-        { title: "Creating a Moltov Grenade with your toes", uuid: "ABCDEFG" },
-    ]);
+    const [chats, setChats] = useState<Chat[]>([]);
     const [conversation, setConversation] = useState<Dialogue[]>([]);
 
+    const [currentChatId, setCurrentChatId] = useState<string>("");
+
     // Get Dialogue
-    const getDialogue = async () => {
+    const getDialogue = async (currentChatId: string) => {
         await fetch("/api/chat/getDialogue", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                chatId: currentChatId,
+            }),
+        })
+            .then((res) => res.json())
+            .then((res) => {
+                setConversation(res.messages);
+            });
+    };
+
+    // Get Dialogue
+    const getChat = async () => {
+        await fetch("/api/chat/getChat", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -45,34 +61,63 @@ export default function Home() {
         })
             .then((res) => res.json())
             .then((res) => {
-                console.log("test");
-                console.log(res.messages);
-                setConversation(res.messages)
-                console.log(conversation)
+                setChats(res.chats);
             });
     };
 
     useEffect(() => {
-        getDialogue();
-    }, [])
+        getChat();
+    }, []);
 
     // Invoke LLM
     const invoke = async () => {
-        conversation.push({is_user: true, message: message})
-        console.log(conversation)
-        await fetch("/api/chat/invoke", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                conversation: conversation
-            }),
-        })
-            .then((res) => res.json())
-            .then((res) => {
-                setConversation(res.conversation)
-            });
+        conversation.push({ is_user: true, message: message });
+        if (currentChatId == "") {
+            await fetch("/api/chat/createChat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    chatId: currentChatId,
+                    conversation: conversation,
+                }),
+            })
+                .then((res) => res.json())
+                .then((res) => {
+                    setCurrentChatId(res.chatId);
+                    fetch("/api/chat/invoke", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            chatId: res.chatId,
+                            conversation: conversation,
+                        }),
+                    })
+                        .then((res) => res.json())
+                        .then((res) => {
+                            setConversation(res.conversation);
+                            getChat()
+                        });
+                });
+        } else {
+            await fetch("/api/chat/invoke", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    chatId: currentChatId,
+                    conversation: conversation,
+                }),
+            })
+                .then((res) => res.json())
+                .then((res) => {
+                    setConversation(res.conversation);
+                });
+        }
     };
 
     // Chat Menu Handlers
@@ -107,7 +152,14 @@ export default function Home() {
                                 display={"flex"}
                                 justifyContent={"space-between"}
                             >
-                                <Typography textOverflow={"ellipsis"} noWrap>
+                                <Typography
+                                    onClick={() => {
+                                        setCurrentChatId(chat.chat_id);
+                                        getDialogue(chat.chat_id);
+                                    }}
+                                    textOverflow={"ellipsis"}
+                                    noWrap
+                                >
                                     {chat.title}
                                 </Typography>
                                 <Button onClick={handleMenu}>
@@ -137,6 +189,18 @@ export default function Home() {
                                 </Menu>
                             </Box>
                         ))}
+                        <Box display={"flex"} justifyContent={"space-between"}>
+                            <Typography
+                                onClick={() => {
+                                    setCurrentChatId("");
+                                    setConversation([]);
+                                }}
+                                textOverflow={"ellipsis"}
+                                noWrap
+                            >
+                                Create New Chat
+                            </Typography>
+                        </Box>
                     </Stack>
                 </Box>
             </Box>
@@ -162,32 +226,24 @@ export default function Home() {
                             width={"100%"}
                             display={"flex"}
                             justifyContent={
-                                dialogue.is_user
-                                    ? "flex-end"
-                                    : "flex-begin"
+                                dialogue.is_user ? "flex-end" : "flex-begin"
                             }
                         >
                             <Box
                                 maxWidth={"80%"}
                                 bgcolor={
-                                    dialogue.is_user
-                                        ? "lightgrey"
-                                        : "grey"
+                                    dialogue.is_user ? "lightgrey" : "grey"
                                 }
                                 borderRadius={5}
                                 display={"flex"}
                                 justifyContent={
-                                    dialogue.is_user
-                                        ? "flex-end"
-                                        : "flex-begin"
+                                    dialogue.is_user ? "flex-end" : "flex-begin"
                                 }
                             >
                                 <Typography
                                     margin={1}
                                     textAlign={
-                                        dialogue.is_user
-                                            ? "right"
-                                            : "left"
+                                        dialogue.is_user ? "right" : "left"
                                     }
                                 >
                                     {dialogue.message}

@@ -27,8 +27,7 @@ export async function POST(request: Request) {
 
     const model_id = "mistral.mistral-7b-instruct-v0:2";
     const region = "us-east-1";
-    const { conversation } = await request.json();
-    const chatId = "03b0d96d-1796-4742-9db5-b69551f7862d";
+    const { chatId, conversation } = await request.json();
 
     // Set messages format
     const messages = conversation.map((dialogue: Dialogue) => {
@@ -89,6 +88,6 @@ export async function POST(request: Request) {
     await clientPosgres.end();
 
     return NextResponse.json({
-        conversation: conversation
+        conversation: conversation,
     });
 }
