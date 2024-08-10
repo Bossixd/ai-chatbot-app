@@ -8,7 +8,6 @@ import {
     BedrockRuntimeClient,
     ConverseCommand,
 } from "@aws-sdk/client-bedrock-runtime";
-import { Content } from "next/font/google";
 
 interface Dialogue {
     is_user: boolean;
@@ -88,6 +87,7 @@ export async function POST(request: Request) {
     await clientPosgres.end();
 
     return NextResponse.json({
+        chatId: chatId,
         conversation: conversation,
     });
 }

@@ -11,7 +11,7 @@ import {
     Link,
 } from "@mui/material";
 import { useState, useEffect } from "react";
-import { DoDisturb, Upload } from "@mui/icons-material";
+import { MoreVertRounded, Upload } from "@mui/icons-material";
 
 import { test } from "@/pg";
 
@@ -34,14 +34,14 @@ export default function Home() {
     const [currentChatId, setCurrentChatId] = useState<string>("");
 
     // Get Dialogue
-    const getDialogue = async (currentChatId: string) => {
+    const getDialogue = async (chatId: string) => {
         await fetch("/api/chat/getDialogue", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                chatId: currentChatId,
+                chatId: chatId,
             }),
         })
             .then((res) => res.json())
@@ -70,23 +70,23 @@ export default function Home() {
     }, []);
 
     // Invoke LLM
-    const invoke = async () => {
+    const invoke = async (chatId: string) => {
         conversation.push({ is_user: true, message: message });
-        if (currentChatId == "") {
-            await fetch("/api/chat/createChat", {
+        if (chatId == "") {
+            fetch("/api/chat/createChat", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    chatId: currentChatId,
+                    chatId: chatId,
                     conversation: conversation,
                 }),
             })
                 .then((res) => res.json())
                 .then((res) => {
                     setCurrentChatId(res.chatId);
-                    fetch("/api/chat/invoke", {
+                    return fetch("/api/chat/invoke", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -95,12 +95,24 @@ export default function Home() {
                             chatId: res.chatId,
                             conversation: conversation,
                         }),
-                    })
-                        .then((res) => res.json())
-                        .then((res) => {
-                            setConversation(res.conversation);
-                            getChat()
-                        });
+                    });
+                })
+                .then((res) => res.json())
+                .then((res) => {
+                    setConversation(res.conversation);
+                    return fetch("/api/chat/setChatName", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            chatId: res.chatId,
+                            conversation: res.conversation,
+                        }),
+                    });
+                })
+                .then((res) => {
+                    getChat();
                 });
         } else {
             await fetch("/api/chat/invoke", {
@@ -120,16 +132,38 @@ export default function Home() {
         }
     };
 
+    // Delete Chat
+    const deleteChat = async (chatId: string) => {
+        if (chatId == currentChatId) {
+            setConversation([]);
+            setCurrentChatId("");
+        }
+        await fetch("/api/chat/deleteChat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                chatId: chatId,
+            }),
+        }).then((res) => getChat());
+    };
+
     // Chat Menu Handlers
     const [auth, setAuth] = useState<boolean>(true);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [openIndex, setOpenIndex] = useState(-1);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setAuth(event.target.checked);
     };
 
-    const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
+    const handleMenu = (
+        event: React.MouseEvent<HTMLElement>,
+        index: number
+    ) => {
         setAnchorEl(event.currentTarget);
+        setOpenIndex(index);
     };
 
     const handleClose = () => {
@@ -147,8 +181,9 @@ export default function Home() {
             <Box width={"280px"} height={"100%"} bgcolor={"grey"}>
                 <Box>
                     <Stack gap={2} pt={2} ml={2} mr={2}>
-                        {chats.map((chat) => (
+                        {chats.map((chat, index) => (
                             <Box
+                                key={index}
                                 display={"flex"}
                                 justifyContent={"space-between"}
                             >
@@ -162,11 +197,14 @@ export default function Home() {
                                 >
                                     {chat.title}
                                 </Typography>
-                                <Button onClick={handleMenu}>
-                                    <DoDisturb></DoDisturb>
+                                <Button
+                                    sx={{ color: "black" }}
+                                    onClick={(e) => handleMenu(e, index)}
+                                >
+                                    <MoreVertRounded></MoreVertRounded>
                                 </Button>
                                 <Menu
-                                    id="menu-appbar"
+                                    id={chat.chat_id}
                                     anchorEl={anchorEl}
                                     anchorOrigin={{
                                         vertical: "top",
@@ -177,11 +215,17 @@ export default function Home() {
                                         vertical: "top",
                                         horizontal: "right",
                                     }}
-                                    open={Boolean(anchorEl)}
+                                    open={
+                                        Boolean(anchorEl) && index === openIndex
+                                    }
                                     onClose={handleClose}
                                 >
                                     <MenuItem>Rename</MenuItem>
-                                    <MenuItem>
+                                    <MenuItem
+                                        onClick={(e) => {
+                                            deleteChat(chat.chat_id);
+                                        }}
+                                    >
                                         <Typography color={"red"}>
                                             Delete
                                         </Typography>
@@ -221,8 +265,9 @@ export default function Home() {
                     overflow={"auto"}
                     mb={1}
                 >
-                    {conversation.map((dialogue) => (
+                    {conversation.map((dialogue, index) => (
                         <Box
+                            key={index}
                             width={"100%"}
                             display={"flex"}
                             justifyContent={
@@ -275,7 +320,7 @@ export default function Home() {
                         <Button
                             onClick={() => {
                                 setMessage("");
-                                invoke();
+                                invoke(currentChatId);
                             }}
                         >
                             <Upload></Upload>
