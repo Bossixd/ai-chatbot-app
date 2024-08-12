@@ -3,7 +3,7 @@ import { login, updateSession, getSession } from "./app/helper/auth";
 import { useRouter } from "next/router";
 
 export async function middleware(request: NextRequest) {
-    const authorized_paths = ["/auth/login", "/auth/signup", "/", "/api/rag/add"]
+    const authorized_paths = ["/auth/login", "/auth/signup", "/", "/api/rag/query"]
     if (authorized_paths.includes(request.nextUrl.pathname)) {
         return NextResponse.next();
     }

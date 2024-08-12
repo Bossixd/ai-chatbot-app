@@ -32,8 +32,6 @@ export async function POST(request: Request) {
         "insert into users (firstname, lastname, email, password) values ($1, $2, $3, $4)";
     await clientPosgres.query(query, [firstname, lastname, email, encryptedPassword]);
 
-    console.log(password, encryptedPassword)
-
     await clientPosgres.end();
 
     return NextResponse.json({

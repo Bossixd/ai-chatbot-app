@@ -6,14 +6,66 @@ import { featureExtraction } from "@huggingface/inference";
 
 import { Pinecone } from "@pinecone-database/pinecone";
 
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+
+import fs from "fs";
+import path from "path";
+
 const apiKey: string = process.env.PINECONE_API_KEY!;
 
 export async function POST(request: NextRequest) {
-    const result = await featureExtraction({
-        model: "intfloat/multilingual-e5-large",
-        inputs: "test",
-    });
-    console.log(result);
+    const dir = "public/data";
+    const files = fs.readdirSync(dir);
+
+    for (const file of files) {
+        let filePath = path.join(dir, file);
+        fs.readFile(filePath, async (err, dataRaw) => {
+            if (err) throw err;
+            const data = dataRaw.toString();
+
+            const splitter = new RecursiveCharacterTextSplitter({
+                chunkSize: 250,
+                chunkOverlap: 1,
+                separators: ["\n\n", "\n", " ", ""],
+            });
+
+            const splits = await splitter.createDocuments([data]);
+
+            for (const chunk of splits) {
+                // TODO Continue working on RAG with AWS Dataset
+                const embedding = await featureExtraction({
+                    model: "intfloat/multilingual-e5-large",
+                    inputs: chunk.pageContent,
+                });
+                console.log(embedding);
+                break;
+            }
+        });
+        break;
+    }
+
+    // function searchFile(dir, fileName) {
+    //     // read the contents of the directory
+    //     const files = fs.readdirSync(dir);
+
+    //     // search through the files
+    //     for (const file of files) {
+    //         // build the full path of the file
+    //         const filePath = path.join(dir, file);
+
+    //         // get the file stats
+    //         const fileStat = fs.statSync(filePath);
+
+    //         // if the file is a directory, recursively search the directory
+    //         if (fileStat.isDirectory()) {
+    //             searchFile(filePath, fileName);
+    //         } else if (file.endsWith(fileName)) {
+    //             // if the file is a match, print it
+    //             console.log(filePath);
+    //         }
+    //     }
+    // }
+
     // const pc = new Pinecone({ apiKey: apiKey });
     // const indexName = "aws-case-studies-and-blogs";
 

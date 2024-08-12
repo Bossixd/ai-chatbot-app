@@ -9,9 +9,14 @@ import {
     MenuItem,
     TextField,
     Link,
+    Switch,
 } from "@mui/material";
-import { useState, useEffect } from "react";
-import { MoreVertRounded, Upload } from "@mui/icons-material";
+import { useState, useEffect, useRef } from "react";
+import {
+    MoreVertRounded,
+    Rotate90DegreesCwSharp,
+    Upload,
+} from "@mui/icons-material";
 
 import { test } from "@/pg";
 
@@ -32,6 +37,22 @@ export default function Home() {
     const [conversation, setConversation] = useState<Dialogue[]>([]);
 
     const [currentChatId, setCurrentChatId] = useState<string>("");
+
+    const [rag, setRag] = useState(false);
+
+    const handleRAG = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setRag(event.target.checked);
+    };
+
+    // Scroll chat down
+    const scrollRef = useRef<null | HTMLDivElement>(null);
+    useEffect(() => {
+        console.log("ScrollRef: ", scrollRef);
+        if (scrollRef.current) {
+            console.log("Scroll");
+            scrollRef.current.scrollIntoView({ behavior: "instant" });
+        }
+    }, [conversation]);
 
     // Get Dialogue
     const getDialogue = async (chatId: string) => {
@@ -94,6 +115,7 @@ export default function Home() {
                         body: JSON.stringify({
                             chatId: res.chatId,
                             conversation: conversation,
+                            rag: rag,
                         }),
                     });
                 })
@@ -123,6 +145,7 @@ export default function Home() {
                 body: JSON.stringify({
                     chatId: currentChatId,
                     conversation: conversation,
+                    rag: rag,
                 }),
             })
                 .then((res) => res.json())
@@ -296,6 +319,7 @@ export default function Home() {
                             </Box>
                         </Box>
                     ))}
+                    <Box ref={scrollRef}></Box>
                 </Stack>
                 <Box
                     width={"100%"}
@@ -310,6 +334,20 @@ export default function Home() {
                         justifyContent={"space-between"}
                         gap={2}
                     >
+                        <Box
+                            display={"flex"}
+                            alignItems={"center"}
+                            justifyContent={"space-between"}
+                            bgcolor={"lightgrey"}
+                            borderRadius={2}
+                        >
+                            <Typography ml={2}>RAG</Typography>
+                            <Switch
+                                checked={rag}
+                                onChange={handleRAG}
+                                inputProps={{ "aria-label": "controlled" }}
+                            />
+                        </Box>
                         <TextField
                             fullWidth
                             value={message}
