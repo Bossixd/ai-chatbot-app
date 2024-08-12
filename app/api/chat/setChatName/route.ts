@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Call LLM
-    const command = new ConverseCommand(input);
+    const command = new ConverseCommand(input as any);
     const response = await clientBedrock.send(command);
     const title = response.output?.message?.content?.[0].text;
 
